@@ -1,0 +1,36 @@
+# robots.txt for Kuber Traders
+# Allow all search engines and AI crawlers
+
+User-agent: *
+Allow: /
+
+# Specific AI Crawlers
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+# Sitemap location
+Sitemap: https://www.kubertradersbediya.com/sitemap.xml
