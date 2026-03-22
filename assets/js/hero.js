@@ -1,5 +1,5 @@
 (() => {
-  const { API_BASE_URL, HERO_ENDPOINT } = window.APP_CONFIG || {};
+  const { STRAPI_URL, API_BASE_URL, HERO_ENDPOINT } = window.APP_CONFIG || {};
 
   const heroBgImg = document.getElementById("heroBgImg");
   const heroDots = document.getElementById("heroDots");
@@ -13,14 +13,12 @@
   let autoSlide = null;
   let typingTimeout = null;
 
-  const fullUrl = (u) => {
+  function fullUrl(u) {
     if (!u) return "";
-    return u.startsWith("http") ? u : `${API_BASE_URL}${u}`;
-  };
+    if (u.startsWith("http")) return u;
+    return `${STRAPI_URL}${u}`;
+  }
 
-  /* =========================
-     TYPEWRITER
-  ========================= */
   function typeWriter(text) {
     if (!typingEl) return;
 
@@ -40,15 +38,14 @@
     type();
   }
 
-  /* =========================
-     DOTS
-  ========================= */
   function renderDots() {
     if (!heroDots) return;
 
-    heroDots.innerHTML = slides.map((_, idx) => {
-      return `<button class="dot ${idx === i ? "active" : ""}" data-i="${idx}"></button>`;
-    }).join("");
+    heroDots.innerHTML = slides
+      .map((_, idx) => {
+        return `<button class="dot ${idx === i ? "active" : ""}" data-i="${idx}"></button>`;
+      })
+      .join("");
 
     heroDots.querySelectorAll(".dot").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -59,23 +56,17 @@
     });
   }
 
-  /* =========================
-     SHOW SLIDE
-  ========================= */
   function showSlide() {
     if (!slides.length) return;
 
     const s = slides[i];
 
-    // title
     typeWriter(s.title || "");
 
-    // subtitle
     if (heroSubtitle) {
       heroSubtitle.textContent = s.subtitle || "";
     }
 
-    // button text
     const btnText =
       typeof s.buttonText === "string" && s.buttonText.trim()
         ? s.buttonText
@@ -94,12 +85,10 @@
       }
     }
 
-    // badge
     if (heroBadge) {
       heroBadge.textContent = s.badgeText || "Premium Grade · Fresh Stock";
     }
 
-    // background image transition
     if (heroBgImg && s.imgUrl) {
       heroBgImg.classList.remove("hero-fade-in");
       heroBgImg.classList.add("hero-fade-out");
@@ -124,49 +113,64 @@
     autoSlide = setInterval(nextSlide, 5000);
   }
 
-  /* =========================
-     LOAD HERO API
-  ========================= */
+  function extractHeroImage(attrs) {
+    if (Array.isArray(attrs?.heroImage) && attrs.heroImage[0]?.url) {
+      return attrs.heroImage[0].url;
+    }
+
+    if (attrs?.heroImage?.url) {
+      return attrs.heroImage.url;
+    }
+
+    if (attrs?.heroImage?.data?.[0]?.attributes?.url) {
+      return attrs.heroImage.data[0].attributes.url;
+    }
+
+    if (attrs?.heroImage?.data?.attributes?.url) {
+      return attrs.heroImage.data.attributes.url;
+    }
+
+    return "";
+  }
+
   async function loadHero() {
     try {
       const url = `${API_BASE_URL}${HERO_ENDPOINT}`;
-      const res = await fetch(url);
+      console.log("Hero API URL:", url);
 
+      const res = await fetch(url);
       if (!res.ok) {
-        throw new Error("Hero API failed");
+        throw new Error(`Hero API failed: ${res.status}`);
       }
 
       const json = await res.json();
+      console.log("Hero API JSON:", json);
 
-      slides = (json?.data || []).map((item) => {
-        const attrs = item.attributes || item; // dono case support
+      slides = (json?.data || [])
+        .map((item) => {
+          const attrs = item.attributes || item;
+          const imageUrl = extractHeroImage(attrs);
 
-        let imageUrl = "";
+          return {
+            title: attrs?.title || "",
+            subtitle: attrs?.subtitle || "",
+            buttonText: attrs?.buttonText || "Contact Us",
+            buttonLink: attrs?.buttonLink || "",
+            badgeText: attrs?.badgeText || "Premium Grade · Fresh Stock",
+            imgUrl: fullUrl(imageUrl),
+          };
+        })
+        .filter((slide) => slide.imgUrl);
 
-        // Strapi v4/v5 possible structures support
-        if (attrs?.heroImage?.[0]?.url) {
-          imageUrl = attrs.heroImage[0].url;
-        } else if (attrs?.heroImage?.data?.[0]?.attributes?.url) {
-          imageUrl = attrs.heroImage.data[0].attributes.url;
-        } else if (attrs?.heroImage?.data?.attributes?.url) {
-          imageUrl = attrs.heroImage.data.attributes.url;
-        }
-
-        return {
-          title: attrs?.title || "",
-          subtitle: attrs?.subtitle || "",
-          buttonText: attrs?.buttonText || "Contact Us",
-          buttonLink: attrs?.buttonLink || "",
-          badgeText: attrs?.badgeText || "Premium Grade · Fresh Stock",
-          imgUrl: fullUrl(imageUrl),
-        };
-      }).filter((slide) => slide.imgUrl);
+      console.log("Resolved hero slides:", slides);
 
       if (!slides.length) return;
 
       i = 0;
-      heroBgImg.src = slides[0].imgUrl;
-      heroBgImg.classList.add("hero-fade-in");
+      if (heroBgImg) {
+        heroBgImg.src = slides[0].imgUrl;
+        heroBgImg.classList.add("hero-fade-in");
+      }
 
       showSlide();
       restartAuto();
