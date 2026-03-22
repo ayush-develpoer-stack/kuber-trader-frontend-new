@@ -1,5 +1,5 @@
 window.APP_CONFIG = {
-  API_BASE_URL: "http://localhost:1337",
+  API_BASE_URL: "https://calm-talent-e6a97dbb2c.strapiapp.com/",
 
   HERO_ENDPOINT: "/api/hero-slides?populate=*",
   PREMIUM_PRODUCTS_ENDPOINT: "/api/premium-products?populate=*&sort=order:asc",
